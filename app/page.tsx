@@ -1,65 +1,134 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useWalletStore } from "@/lib/store"
+import { useContacts, useCurrentUser } from "@/hooks/use-users"
+import { generateMockTransactions } from "@/lib/mock-data"
+import { ContactAvatar } from "@/components/contact-avatar"
+import { TransactionItem } from "@/components/transaction-item"
+import { TransactionSkeleton } from "@/components/transaction-skeleton"
+import { BottomNav } from "@/components/bottom-nav"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Avatar, AvatarImage } from "@radix-ui/react-avatar"
+import { Contact } from "@/lib/types"
+// import Wayni from "@icons/waynilogo.svg"
+
+export default function HomePage() {
+  const router = useRouter()
+  const { data: currentUser, isLoading: isLoadingUser } = useCurrentUser()
+  const { data: contacts, isLoading: isLoadingContacts } = useContacts()
+
+  const {
+    currentUser: storedUser,
+    balance,
+    transactions,
+    setCurrentUser,
+    setContacts,
+    addTransaction,
+  } = useWalletStore()
+
+  // Initialize user and contacts
+  useEffect(() => {
+    if (currentUser && !storedUser) {
+      setCurrentUser(currentUser)
+    }
+  }, [currentUser, storedUser, setCurrentUser])
+
+  useEffect(() => {
+    if (contacts && contacts.length > 0) {
+      setContacts(contacts)
+
+      // Generate mock transactions if none exist
+      if (transactions.length === 0) {
+        const mockTransactions = generateMockTransactions(contacts)
+        mockTransactions.forEach((txn) => addTransaction(txn))
+      }
+    }
+  }, [contacts, setContacts, transactions.length, addTransaction])
+
+  const displayUser = storedUser || currentUser
+  const displayContacts = contacts || []
+
+  const handleContactClick = (contact: Contact) => {
+    router.push(`/send?contactId=${contact.login.uuid}`)
+  }
+
+  const isLoadingTransactions = isLoadingContacts || transactions.length === 0
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-bgWhiteWayli pb-22">
+      {/* Header with gradient */}
+      <div className="bg-primary text-primary-foreground px-main pt-12 pb-[60px]">
+        <div className="flex items-center justify-between my-4">
+          <div>
+            {isLoadingUser ? (
+              <div className="flex items-center gap-[12px]">
+                  <Skeleton className="h-12 w-12 rounded-full bg-primary-foreground/20" />
+                  <div className="flex items-start flex-col gap-0">
+                    <Skeleton className="h-5 w-32 bg-primary-foreground/20 mt-1" />
+                    <Skeleton className="h-5 w-48 bg-primary-foreground/20 mt-2" />
+                  </div>
+              </div>
+              
+            ) : (
+            <div className="flex items-center gap-[12px]">
+              <div className="h-12 w-12 rounded-full bg-primary-foreground/20 flex items-center justify-center text-xl font-bold">
+                <Avatar className="flex items-center justify-center text-xl font-bold">
+                  <AvatarImage className="h-12 w-12 rounded-full" src={displayUser?.picture.medium || "/placeholder.svg"} alt={`${displayUser?.name.first} ${displayUser?.name.last}`} />
+                </Avatar>
+              </div>
+              <div className="flex items-start flex-col gap-0">
+                <p className="text-sm opacity-90">Welcome back,</p>
+                <h1 className="text-2xl font-bold">
+                  {displayUser ? `${displayUser.name.first} ${displayUser.name.last}` : "User"}
+                </h1>
+              </div>
+              
+            </div>)}
+          </div>
+          
+          
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="bg-primary-foreground/10 backdrop-blur-sm rounded-2xl p-2 text-center">
+          <p className="text-sm opacity-90 mb-1 ">Your Balance</p>
+          <p className="text-4xl font-bold">${balance.toLocaleString()}</p>
         </div>
-      </main>
+      </div>
+
+      {/* Send Again Section */}
+      <div className="px-main card-top-rounded">
+        <h2 className="text-h2 font-bold text-foreground mb-[24px] text-center">Send Again</h2>
+        <div className="w-full overflow-x-auto mb-[32px]">
+          <div className="flex gap-[19.5px] h-[102px]">
+            {isLoadingContacts
+              ? Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex flex-col items-center gap-[16px]">
+                    <Skeleton className="h-[65px] w-[65px] rounded-full" />
+                    <Skeleton className="h-3 w-12" />
+                  </div>
+                ))
+              : displayContacts
+                  .slice(0, 10)
+                  .map((contact) => (
+                    <ContactAvatar key={contact.login.uuid} contact={contact} onClick={() => handleContactClick(contact)} />
+                  ))}
+          </div>
+        </div>
+  
+
+      {/* Latest Transactions */}
+        <div>
+          <h2 className="text-h2 font-bold text-foreground mb-[24px] text-center">Latest Transaction</h2>
+            {isLoadingTransactions
+              ? Array.from({ length: 5 }).map((_, i) => <TransactionSkeleton key={i} />)
+              : transactions
+                  .slice(0, 8)
+                  .map((transaction) => <TransactionItem key={transaction.id} transaction={transaction} />)}
+        </div>
+      </div>
+      <BottomNav />
     </div>
-  );
+  )
 }
